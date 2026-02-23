@@ -19,9 +19,17 @@ func (r *UserRepositoryImpl) Create(ctx context.Context, user *models.User) erro
 	return r.DB.WithContext(ctx).Create(user).Error
 }
 
-func (r *UserRepositoryImpl) FindByNIK(ctx context.Context, nik string) (*models.User, error) {
+func (r *UserRepositoryImpl) FindByUsername(ctx context.Context, username string) (*models.User, error) {
 	var user models.User
-	if err := r.DB.WithContext(ctx).Where("nik = ?", nik).First(&user).Error; err != nil {
+	if err := r.DB.WithContext(ctx).Where("username = ?", username).First(&user).Error; err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
+func (r *UserRepositoryImpl) FindByEmail(ctx context.Context, email string) (*models.User, error) {
+	var user models.User
+	if err := r.DB.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
 		return nil, err
 	}
 	return &user, nil

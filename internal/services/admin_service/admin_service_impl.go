@@ -43,7 +43,7 @@ func (a *AdminServiceImpl) Register(ctx context.Context, req adminrequest.Regist
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan email", 500)
 	}
-	
+
 	if existsEmail != nil {
 		return errorresponse.NewCustomError(errorresponse.ErrExists, "Email sudah digunakan", 409)
 	}
@@ -62,6 +62,7 @@ func (a *AdminServiceImpl) Register(ctx context.Context, req adminrequest.Regist
 	}
 
 	admin := &models.User{
+		Username: strings.Split(req.Email, "@")[0],
 		Name:     req.Name,
 		Email:    req.Email,
 		Password: hashed,

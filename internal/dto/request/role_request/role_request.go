@@ -1,9 +1,9 @@
 package rolerequest
 
 type CreateRoleRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name" form:"name"`
 }
 
 type UpdateRoleRequest struct {
-	Name string `json:"name" binding:"required"`
+	Name string `json:"name" form:"name"`
 }

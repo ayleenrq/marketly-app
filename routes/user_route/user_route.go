@@ -26,5 +26,8 @@ func UserRoutes(e *echo.Group, db *gorm.DB, cld *cloudinary.Cloudinary) {
 
 	auth.GET("/me", userHandler.GetProfileUser)
 	auth.PUT("/me", userHandler.UpdateProfileUser)
- 	auth.POST("/logout", userHandler.LogoutUser)
+	auth.PUT("/me/photo", userHandler.UpdatePhotoProfile)
+	auth.PUT("/me/password", userHandler.ChangePassword)
+	auth.PUT("/me/email", userHandler.ChangeEmail)
+	auth.POST("/logout", userHandler.LogoutUser)
 }

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"time"
 
 	userrequest "marketly-app/internal/dto/request/user_request"
 	"marketly-app/internal/models"
@@ -27,7 +26,7 @@ func NewUserServiceImpl(userRepo userrepo.IUserRepository, cld *cloudinary.Cloud
 }
 
 func (s *UserServiceImpl) Register(ctx context.Context, req userrequest.RegisterUserRequest) error {
-	if strings.TrimSpace(req.NIK) == "" {
+	if strings.TrimSpace(req.Username) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "NIK wajib diisi", 400)
 	}
 	if strings.TrimSpace(req.Name) == "" {
@@ -39,47 +38,31 @@ func (s *UserServiceImpl) Register(ctx context.Context, req userrequest.Register
 	if strings.TrimSpace(req.Password) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password wajib diisi", 400)
 	}
-	if strings.TrimSpace(req.TempatLahir) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Tempat Lahir wajib diisi", 400)
-	}
-	if strings.TrimSpace(req.Agama) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Agama wajib diisi", 400)
-	}
-	if strings.TrimSpace(req.Address) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Alamat wajib diisi", 400)
-	}
 	if strings.TrimSpace(req.PhoneNumber) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Nomor Handphone wajib diisi", 400)
 	}
-	if strings.TrimSpace(req.Status) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Status Perkawinan wajib diisi", 400)
-	}
-	if strings.TrimSpace(req.ReasonRegister) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Alasan wajib diisi", 400)
+	if strings.TrimSpace(req.Address) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Alamat wajib diisi", 400)
 	}
 
 	if !utils.IsValidEmail(req.Email) {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Format email tidak valid", 400)
 	}
 
-	if !utils.IsValidNIK(req.NIK) {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "NIK harus terdiri dari 16 digit angka", 400)
-	}
-
-	if !utils.IsNumeric(req.PhoneNumber) {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Nomor Handphone harus berupa angka", 400)
-	}
-
-	if req.PhotoFile == nil {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Foto wajib diunggah", 400)
-	}
-
-	existsNIK, err := s.userRepo.FindByNIK(ctx, req.NIK)
+	existsUsername, err := s.userRepo.FindByUsername(ctx, req.Username)
 	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
-		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan NIK", 500)
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan username", 500)
 	}
-	if existsNIK != nil {
-		return errorresponse.NewCustomError(errorresponse.ErrExists, "NIK sudah digunakan", 409)
+	if existsUsername != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrExists, "Username sudah digunakan", 409)
+	}
+
+	existsEmail, err := s.userRepo.FindByEmail(ctx, req.Email)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan email", 500)
+	}
+	if existsEmail != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrExists, "Email sudah digunakan", 409)
 	}
 
 	hashedPass, err := utils.HashPassword(req.Password)
@@ -95,39 +78,22 @@ func (s *UserServiceImpl) Register(ctx context.Context, req userrequest.Register
 		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to get role user", 500)
 	}
 
-	birth, err := time.Parse("2006-01-02", req.BirthDate)
-	if err != nil {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Format tanggal lahir harus YYYY-MM-DD", 400)
-	}
-
-	photoURL, err := utils.UploadToCloudinary(req.PhotoFile, "civi-id/users")
-	if err != nil {
-		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mengunggah foto", 500)
-	}
-
-	genderML, err := utils.DetectGenderML(req.PhotoFile)
-	if err != nil {
-		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendeteksi jenis kelamin", 500)
-	}
-
-	jenisKelamin := utils.MLToIndo(genderML)
-
 	user := &models.User{
-		NIK:            &req.NIK,
-		Name:           req.Name,
-		Email:          req.Email,
-		Password:       hashedPass,
-		JenisKelamin:   &jenisKelamin,
-		TempatLahir:    &req.TempatLahir,
-		BirthDate:      &birth,
-		Agama:          &req.Agama,
-		Address:        &req.Address,
-		PhoneNumber:    &req.PhoneNumber,
-		Status:         &req.Status,
-		ReasonRegister: &req.ReasonRegister,
-		PhotoURL:       &photoURL,
-		GenderML:       &genderML,
-		RoleID:         role.ID,
+		Username:    req.Username,
+		Name:        req.Name,
+		Email:       req.Email,
+		Password:    hashedPass,
+		PhoneNumber: &req.PhoneNumber,
+		Address:     &req.Address,
+		RoleID:      role.ID,
+	}
+
+	if req.PhotoFile != nil {
+		photoURL, err := utils.UploadToCloudinary(req.PhotoFile, "marketly/users")
+		if err != nil {
+			return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mengunggah foto", 500)
+		}
+		user.PhotoURL = &photoURL
 	}
 
 	if err := s.userRepo.Create(ctx, user); err != nil {
@@ -138,17 +104,34 @@ func (s *UserServiceImpl) Register(ctx context.Context, req userrequest.Register
 }
 
 func (s *UserServiceImpl) Login(ctx context.Context, req userrequest.LoginUserRequest) (string, error) {
-	if strings.TrimSpace(req.NIK) == "" {
-		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "NIK wajib diisi", 400)
+	if strings.TrimSpace(req.Password) == "" {
+		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Kata sandi wajib diisi", 400)
 	}
 
-	if !utils.IsValidNIK(req.NIK) {
-		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "NIK harus terdiri dari 16 digit angka", 400)
+	email := strings.TrimSpace(req.Email)
+	username := strings.TrimSpace(req.Username)
+
+	if email == "" && username == "" {
+		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Email atau Username wajib diisi", 400)
 	}
 
-	user, err := s.userRepo.FindByNIK(ctx, req.NIK)
-	if err != nil {
-		return "", errorresponse.NewCustomError(errorresponse.ErrNotFound, "NIK tidak valid", 400)
+	var user *models.User
+	var err error
+
+	if email != "" {
+		if !utils.IsValidEmail(email) {
+			return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Format email tidak valid", 400)
+		}
+
+		user, err = s.userRepo.FindByEmail(ctx, email)
+		if err != nil {
+			return "", errorresponse.NewCustomError(errorresponse.ErrNotFound, "Email tidak valid", 400)
+		}
+	} else {
+		user, err = s.userRepo.FindByUsername(ctx, username)
+		if err != nil {
+			return "", errorresponse.NewCustomError(errorresponse.ErrNotFound, "Username tidak valid", 400)
+		}
 	}
 
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
@@ -171,26 +154,139 @@ func (s *UserServiceImpl) GetProfile(ctx context.Context, userID int) (*models.U
 	return user, nil
 }
 
-func (s *UserServiceImpl) UpdateProfile(ctx context.Context, userID int, req userrequest.UpdateUserRequest) error {
-	user, err := s.userRepo.FindById(ctx, userID)
+func (u *UserServiceImpl) UpdateProfile(ctx context.Context, userID int, req userrequest.UpdateUserRequest) error {
+	user, err := u.userRepo.FindById(ctx, userID)
 	if err != nil {
 		return errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
 	}
 
-	if req.Email != "" {
-		user.Email = req.Email
+	if strings.TrimSpace(req.Name) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Name is required", 400)
 	}
 
-	if req.Address != "" {
-		user.Address = &req.Address
+	user.Name = req.Name
+
+	if strings.TrimSpace(req.Username) != "" && req.Username != user.Username {
+		existsUsername, err := u.userRepo.FindByUsername(ctx, req.Username)
+		if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+			return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan username", 500)
+		}
+		if existsUsername != nil && existsUsername.ID != user.ID {
+			return errorresponse.NewCustomError(errorresponse.ErrExists, "Username sudah digunakan", 409)
+		}
+		user.Username = req.Username
 	}
 
-	if req.PhoneNumber != "" {
+	if strings.TrimSpace(req.PhoneNumber) != "" {
 		user.PhoneNumber = &req.PhoneNumber
 	}
 
-	if err := s.userRepo.Update(ctx, user); err != nil {
-		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to update user", 500)
+	if strings.TrimSpace(req.Address) != "" {
+		user.Address = &req.Address
+	}
+
+	if req.PhotoFile != nil {
+		photoURL, err := utils.UploadToCloudinary(req.PhotoFile, "marketly/users")
+		if err != nil {
+			return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mengunggah foto", 500)
+		}
+		user.PhotoURL = &photoURL
+	}
+
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to update user profile", 500)
+	}
+
+	return nil
+}
+
+func (u *UserServiceImpl) UpdatePhoto(ctx context.Context, userID int, req userrequest.UpdatePhotoRequest) error {
+	if req.PhotoFile == nil {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Photo file is required", 400)
+	}
+
+	user, err := u.userRepo.FindById(ctx, userID)
+	if err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
+	}
+
+	photoURL, err := utils.UploadToCloudinary(req.PhotoFile, "marketly/users")
+	if err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mengunggah foto", 500)
+	}
+
+	user.PhotoURL = &photoURL
+
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to update photo", 500)
+	}
+
+	return nil
+}
+
+func (u *UserServiceImpl) ChangePassword(ctx context.Context, userID int, req userrequest.ChangePasswordRequest) error {
+	if strings.TrimSpace(req.OldPassword) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password lama wajib diisi", 400)
+	}
+	if strings.TrimSpace(req.NewPassword) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password baru wajib diisi", 400)
+	}
+
+	user, err := u.userRepo.FindById(ctx, userID)
+	if err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
+	}
+
+	if !utils.CheckPasswordHash(req.OldPassword, user.Password) {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password lama salah", 400)
+	}
+
+	hashed, err := utils.HashPassword(req.NewPassword)
+	if err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Gagal meng-hash password", 400)
+	}
+
+	user.Password = hashed
+
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to change password", 500)
+	}
+
+	return nil
+}
+
+func (u *UserServiceImpl) ChangeEmail(ctx context.Context, userID int, req userrequest.ChangeEmailRequest) error {
+	if strings.TrimSpace(req.NewEmail) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Email baru wajib diisi", 400)
+	}
+	if strings.TrimSpace(req.Password) == "" {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password wajib diisi", 400)
+	}
+	if !utils.IsValidEmail(req.NewEmail) {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Format email tidak valid", 400)
+	}
+
+	user, err := u.userRepo.FindById(ctx, userID)
+	if err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
+	}
+
+	if !utils.CheckPasswordHash(req.Password, user.Password) {
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password salah", 400)
+	}
+
+	existsEmail, err := u.userRepo.FindByEmail(ctx, req.NewEmail)
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Gagal mendapatkan email", 500)
+	}
+	if existsEmail != nil && existsEmail.ID != user.ID {
+		return errorresponse.NewCustomError(errorresponse.ErrExists, "Email sudah digunakan", 409)
+	}
+
+	user.Email = req.NewEmail
+
+	if err := u.userRepo.Update(ctx, user); err != nil {
+		return errorresponse.NewCustomError(errorresponse.ErrInternal, "Failed to change email", 500)
 	}
 
 	return nil
@@ -199,8 +295,4 @@ func (s *UserServiceImpl) UpdateProfile(ctx context.Context, userID int, req use
 func (s *UserServiceImpl) Logout(ctx context.Context, userID int) error {
 	fmt.Printf("User %d logged out\n", userID)
 	return nil
-}
-
-func boolPtr(b bool) *bool {
-	return &b
 }

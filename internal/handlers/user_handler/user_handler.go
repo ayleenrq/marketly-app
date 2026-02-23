@@ -8,6 +8,7 @@ import (
 	"marketly-app/pkg/constant/response"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
@@ -24,17 +25,12 @@ func NewUserHandler(userService userservice.IUserService) *UserHandler {
 func (h *UserHandler) RegisterUser(c echo.Context) error {
 	var req userrequest.RegisterUserRequest
 
-	req.NIK = c.FormValue("nik")
+	req.Username = c.FormValue("username")
 	req.Name = c.FormValue("name")
 	req.Email = c.FormValue("email")
 	req.Password = c.FormValue("password")
-	req.TempatLahir = c.FormValue("tempat_lahir")
-	req.BirthDate = c.FormValue("birth_date")
-	req.Agama = c.FormValue("agama")
-	req.Address = c.FormValue("address")
 	req.PhoneNumber = c.FormValue("phone_number")
-	req.Status = c.FormValue("status")
-	req.ReasonRegister = c.FormValue("alasan_register")
+	req.Address = c.FormValue("address")
 
 	photoFile, err := c.FormFile("photo_file")
 	if err != nil {
@@ -53,13 +49,25 @@ func (h *UserHandler) RegisterUser(c echo.Context) error {
 	return response.Success(c, http.StatusCreated, "User Created Successfully", nil)
 }
 
-func (a *UserHandler) LoginUser(c echo.Context) error {
+func (h *UserHandler) LoginUser(c echo.Context) error {
 	var req userrequest.LoginUserRequest
 	if err := c.Bind(&req); err != nil {
 		return response.Error(c, http.StatusBadRequest, "bad request", err.Error())
 	}
 
-	token, err := a.userService.Login(c.Request().Context(), req)
+	req.Email = strings.TrimSpace(req.Email)
+	req.Username = strings.TrimSpace(req.Username)
+	req.Password = strings.TrimSpace(req.Password)
+
+	if req.Password == "" {
+		return response.Error(c, http.StatusBadRequest, "Password wajib diisi", nil)
+	}
+
+	if req.Email == "" && req.Username == "" {
+		return response.Error(c, http.StatusBadRequest, "Email atau Username wajib diisi", nil)
+	}
+
+	token, err := h.userService.Login(c.Request().Context(), req)
 	if err != nil {
 		if customErr, ok := errorresponse.AsCustomErr(err); ok {
 			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
@@ -112,9 +120,10 @@ func (h *UserHandler) UpdateProfileUser(c echo.Context) error {
 	userID, _ := strconv.Atoi(userIDStr)
 
 	var req userrequest.UpdateUserRequest
-	req.Email = c.FormValue("email")
-	req.Address = c.FormValue("address")
+	req.Username = c.FormValue("username")
+	req.Name = c.FormValue("name")
 	req.PhoneNumber = c.FormValue("phone_number")
+	req.Address = c.FormValue("address")
 
 	if err := h.userService.UpdateProfile(c.Request().Context(), userID, req); err != nil {
 		if customErr, ok := errorresponse.AsCustomErr(err); ok {
@@ -124,6 +133,94 @@ func (h *UserHandler) UpdateProfileUser(c echo.Context) error {
 	}
 
 	return response.Success(c, http.StatusOK, "Profile updated successfully", nil)
+}
+
+func (h *UserHandler) UpdatePhotoProfile(c echo.Context) error {
+	userToken := c.Get("user")
+	if userToken == nil {
+		return response.Error(c, http.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	token := userToken.(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	userIDStr := claims["user_id"].(string)
+	userID, _ := strconv.Atoi(userIDStr)
+
+	photoFile, err := c.FormFile("photo_file")
+	if err != nil {
+		return response.Error(c, http.StatusBadRequest, "Photo file is required", err.Error())
+	}
+
+	req := userrequest.UpdatePhotoRequest{
+		PhotoFile: photoFile,
+	}
+
+	err = h.userService.UpdatePhoto(c.Request().Context(), userID, req)
+	if err != nil {
+		if customErr, ok := errorresponse.AsCustomErr(err); ok {
+			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
+		}
+		return response.Error(c, http.StatusInternalServerError, err.Error(), "Failed to update photo")
+	}
+
+	return response.Success(c, http.StatusOK, "Photo updated successfully", nil)
+}
+
+func (h *UserHandler) ChangePassword(c echo.Context) error {
+	userToken := c.Get("user")
+	if userToken == nil {
+		return response.Error(c, http.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	token := userToken.(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	userIDStr := claims["user_id"].(string)
+	userID, _ := strconv.Atoi(userIDStr)
+
+	var req userrequest.ChangePasswordRequest
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "Bad request", err.Error())
+	}
+
+	err := h.userService.ChangePassword(c.Request().Context(), userID, req)
+	if err != nil {
+		if customErr, ok := errorresponse.AsCustomErr(err); ok {
+			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
+		}
+		return response.Error(c, http.StatusInternalServerError, err.Error(), "Failed to change password")
+	}
+
+	return response.Success(c, http.StatusOK, "Password updated successfully", nil)
+}
+
+func (h *UserHandler) ChangeEmail(c echo.Context) error {
+	userToken := c.Get("user")
+	if userToken == nil {
+		return response.Error(c, http.StatusUnauthorized, "Unauthorized", nil)
+	}
+
+	token := userToken.(*jwt.Token)
+	claims := token.Claims.(jwt.MapClaims)
+
+	userIDStr := claims["user_id"].(string)
+	userID, _ := strconv.Atoi(userIDStr)
+
+	var req userrequest.ChangeEmailRequest
+	if err := c.Bind(&req); err != nil {
+		return response.Error(c, http.StatusBadRequest, "Bad request", err.Error())
+	}
+
+	err := h.userService.ChangeEmail(c.Request().Context(), userID, req)
+	if err != nil {
+		if customErr, ok := errorresponse.AsCustomErr(err); ok {
+			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
+		}
+		return response.Error(c, http.StatusInternalServerError, err.Error(), "Failed to change email")
+	}
+
+	return response.Success(c, http.StatusOK, "Email updated successfully", nil)
 }
 
 func (a *UserHandler) LogoutUser(c echo.Context) error {

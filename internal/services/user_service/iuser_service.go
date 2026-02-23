@@ -10,6 +10,9 @@ type IUserService interface {
 	Register(ctx context.Context, req userrequest.RegisterUserRequest) error
 	Login(ctx context.Context, req userrequest.LoginUserRequest) (string, error)
 	GetProfile(ctx context.Context, userID int) (*models.User, error)
-	UpdateProfile(ctx context.Context, adminID int, req userrequest.UpdateUserRequest) error
+	UpdateProfile(ctx context.Context, userID int, req userrequest.UpdateUserRequest) error
+	UpdatePhoto(ctx context.Context, userID int, req userrequest.UpdatePhotoRequest) error
+	ChangeEmail(ctx context.Context, userID int, req userrequest.ChangeEmailRequest) error
+	ChangePassword(ctx context.Context, userID int, req userrequest.ChangePasswordRequest) error
 	Logout(ctx context.Context, userID int) error
 }
