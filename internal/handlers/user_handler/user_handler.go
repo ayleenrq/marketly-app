@@ -152,7 +152,7 @@ func (h *UserHandler) UpdatePhotoProfile(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "Photo file is required", err.Error())
 	}
 
-	req := userrequest.UpdatePhotoRequest{
+	req := userrequest.UpdatePhotoUserRequest{
 		PhotoFile: photoFile,
 	}
 
@@ -179,7 +179,7 @@ func (h *UserHandler) ChangePassword(c echo.Context) error {
 	userIDStr := claims["user_id"].(string)
 	userID, _ := strconv.Atoi(userIDStr)
 
-	var req userrequest.ChangePasswordRequest
+	var req userrequest.ChangePasswordUserRequest
 	if err := c.Bind(&req); err != nil {
 		return response.Error(c, http.StatusBadRequest, "Bad request", err.Error())
 	}
@@ -207,7 +207,7 @@ func (h *UserHandler) ChangeEmail(c echo.Context) error {
 	userIDStr := claims["user_id"].(string)
 	userID, _ := strconv.Atoi(userIDStr)
 
-	var req userrequest.ChangeEmailRequest
+	var req userrequest.ChangeEmailUserRequest
 	if err := c.Bind(&req); err != nil {
 		return response.Error(c, http.StatusBadRequest, "Bad request", err.Error())
 	}

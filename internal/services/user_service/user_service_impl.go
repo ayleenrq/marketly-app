@@ -200,7 +200,7 @@ func (u *UserServiceImpl) UpdateProfile(ctx context.Context, userID int, req use
 	return nil
 }
 
-func (u *UserServiceImpl) UpdatePhoto(ctx context.Context, userID int, req userrequest.UpdatePhotoRequest) error {
+func (u *UserServiceImpl) UpdatePhoto(ctx context.Context, userID int, req userrequest.UpdatePhotoUserRequest) error {
 	if req.PhotoFile == nil {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Photo file is required", 400)
 	}
@@ -224,7 +224,7 @@ func (u *UserServiceImpl) UpdatePhoto(ctx context.Context, userID int, req userr
 	return nil
 }
 
-func (u *UserServiceImpl) ChangePassword(ctx context.Context, userID int, req userrequest.ChangePasswordRequest) error {
+func (u *UserServiceImpl) ChangePassword(ctx context.Context, userID int, req userrequest.ChangePasswordUserRequest) error {
 	if strings.TrimSpace(req.OldPassword) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password lama wajib diisi", 400)
 	}
@@ -255,7 +255,7 @@ func (u *UserServiceImpl) ChangePassword(ctx context.Context, userID int, req us
 	return nil
 }
 
-func (u *UserServiceImpl) ChangeEmail(ctx context.Context, userID int, req userrequest.ChangeEmailRequest) error {
+func (u *UserServiceImpl) ChangeEmail(ctx context.Context, userID int, req userrequest.ChangeEmailUserRequest) error {
 	if strings.TrimSpace(req.NewEmail) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Email baru wajib diisi", 400)
 	}
