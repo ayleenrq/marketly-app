@@ -6,6 +6,7 @@ import (
 	adminservice "marketly-app/internal/services/admin_service"
 	errorresponse "marketly-app/pkg/constant/error_response"
 	"marketly-app/pkg/constant/response"
+	"marketly-app/pkg/utils"
 	"net/http"
 	"strconv"
 
@@ -83,6 +84,27 @@ func (a *AdminHandler) GetProfileAdmin(c echo.Context) error {
 
 	adminResponse := adminresponse.ToAdminResponse(*me)
 	return response.Success(c, http.StatusOK, "Get Profile Successfully", adminResponse)
+}
+
+func (a *AdminHandler) GetAllAdmin(c echo.Context) error {
+	pageInt, limitInt := utils.ParsePaginationParams(c, 10)
+	search := c.QueryParam("search")
+
+	admins, total, err := a.adminService.GetAllAdmin(c.Request().Context(), pageInt, limitInt, search)
+	if err != nil {
+		if customErr, ok := errorresponse.AsCustomErr(err); ok {
+			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
+		}
+		return response.Error(c, http.StatusInternalServerError, err.Error(), "failed to get admin")
+	}
+
+	meta := utils.BuildPaginationMeta(c, pageInt, limitInt, int(total))
+	data := make([]adminresponse.AdminResponse, len(admins))
+	for i, admin := range admins {
+		data[i] = adminresponse.ToAdminResponse(*admin)
+	}
+
+	return response.PaginatedSuccess(c, http.StatusOK, "Get All Admin Successfully", data, meta)
 }
 
 func (a *AdminHandler) UpdateProfileAdmin(c echo.Context) error {

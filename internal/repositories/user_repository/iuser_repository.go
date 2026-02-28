@@ -10,6 +10,7 @@ type IUserRepository interface {
 	FindByEmail(ctx context.Context, email string) (*models.User, error)
 	FindByUsername(ctx context.Context, username string) (*models.User, error)
 	FindRoleUser(ctx context.Context) (*models.Role, error)
+	FindAll(ctx context.Context, limit, offset int, search string) ([]*models.User, int64, error)
 	FindById(ctx context.Context, userID int) (*models.User, error)
 	Update(ctx context.Context, user *models.User) error
 }

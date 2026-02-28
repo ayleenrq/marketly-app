@@ -6,6 +6,7 @@ import (
 	userservice "marketly-app/internal/services/user_service"
 	errorresponse "marketly-app/pkg/constant/error_response"
 	"marketly-app/pkg/constant/response"
+	"marketly-app/pkg/utils"
 	"net/http"
 	"strconv"
 	"strings"
@@ -105,6 +106,27 @@ func (a *UserHandler) GetProfileUser(c echo.Context) error {
 
 	userResponse := userresponse.ToUserResponse(*me)
 	return response.Success(c, http.StatusOK, "Get Profile Successfully", userResponse)
+}
+
+func (h *UserHandler) GetAllUser(c echo.Context) error {
+	pageInt, limitInt := utils.ParsePaginationParams(c, 10)
+	search := c.QueryParam("search")
+
+	users, total, err := h.userService.GetAllUser(c.Request().Context(), pageInt, limitInt, search)
+	if err != nil {
+		if customErr, ok := errorresponse.AsCustomErr(err); ok {
+			return response.Error(c, customErr.Status, customErr.Msg, customErr.Err.Error())
+		}
+		return response.Error(c, http.StatusInternalServerError, err.Error(), "failed to get user")
+	}
+
+	meta := utils.BuildPaginationMeta(c, pageInt, limitInt, int(total))
+	data := make([]userresponse.UserResponse, len(users))
+	for i, u := range users {
+		data[i] = userresponse.ToUserResponse(*u)
+	}
+
+	return response.PaginatedSuccess(c, http.StatusOK, "Get All User Successfully", data, meta)
 }
 
 func (h *UserHandler) UpdateProfileUser(c echo.Context) error {

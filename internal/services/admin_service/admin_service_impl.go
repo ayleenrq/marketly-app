@@ -93,6 +93,10 @@ func (a *AdminServiceImpl) Login(ctx context.Context, req adminrequest.LoginAdmi
 		return "", errorresponse.NewCustomError(errorresponse.ErrNotFound, "Email tidak valid", 400)
 	}
 
+	if strings.ToLower(admin.Role.Name) != "ADMIN" {
+		return "", errorresponse.NewCustomError(errorresponse.ErrUnauthorized, "Unauthorized access", 401)
+	}
+
 	if !utils.CheckPasswordHash(req.Password, admin.Password) {
 		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password salah", 400)
 	}
@@ -105,13 +109,26 @@ func (a *AdminServiceImpl) Login(ctx context.Context, req adminrequest.LoginAdmi
 	return token, nil
 }
 
-func (a *AdminServiceImpl) GetProfile(ctx context.Context, adminId int) (*models.User, error) {
-	admin, err := a.adminRepo.FindByAdminID(ctx, adminId)
+func (a *AdminServiceImpl) GetProfile(ctx context.Context, adminID int) (*models.User, error) {
+	admin, err := a.adminRepo.FindByAdminID(ctx, adminID)
 	if err != nil {
 		return nil, errorresponse.NewCustomError(errorresponse.ErrNotFound, "Admin not found", 404)
 	}
 	return admin, nil
 }
+
+func (s *AdminServiceImpl) GetAllAdmin(ctx context.Context, page, limit int, search string) ([]*models.User, int, error) {
+	offset := (page - 1) * limit
+	return s.adminRepo.FindAll(ctx, limit, offset, search)
+}
+
+func (s *AdminServiceImpl) GetByIdAdmin(ctx context.Context, adminID int) (*models.User, error) {
+	admin, err := s.adminRepo.FindByAdminID(ctx, adminID)
+	if err != nil {
+		return nil, errorresponse.NewCustomError(errorresponse.ErrNotFound, "Admin not found", 404)
+	}
+	return admin, nil
+}	
 
 func (a *AdminServiceImpl) UpdateProfile(ctx context.Context, adminID int, req adminrequest.UpdateProfileRequest) error {
 	admin, err := a.adminRepo.FindByAdminID(ctx, adminID)

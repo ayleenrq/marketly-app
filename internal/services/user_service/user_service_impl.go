@@ -27,7 +27,7 @@ func NewUserServiceImpl(userRepo userrepo.IUserRepository, cld *cloudinary.Cloud
 
 func (s *UserServiceImpl) Register(ctx context.Context, req userrequest.RegisterUserRequest) error {
 	if strings.TrimSpace(req.Username) == "" {
-		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "NIK wajib diisi", 400)
+		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Username wajib diisi", 400)
 	}
 	if strings.TrimSpace(req.Name) == "" {
 		return errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Nama wajib diisi", 400)
@@ -134,6 +134,10 @@ func (s *UserServiceImpl) Login(ctx context.Context, req userrequest.LoginUserRe
 		}
 	}
 
+	if strings.ToLower(user.Role.Name) != "buyer" {
+		return "", errorresponse.NewCustomError(errorresponse.ErrUnauthorized, "Unauthorized access", 401)
+	}
+
 	if !utils.CheckPasswordHash(req.Password, user.Password) {
 		return "", errorresponse.NewCustomError(errorresponse.ErrBadRequest, "Password salah", 400)
 	}
@@ -147,6 +151,19 @@ func (s *UserServiceImpl) Login(ctx context.Context, req userrequest.LoginUserRe
 }
 
 func (s *UserServiceImpl) GetProfile(ctx context.Context, userID int) (*models.User, error) {
+	user, err := s.userRepo.FindById(ctx, userID)
+	if err != nil {
+		return nil, errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
+	}
+	return user, nil
+}
+
+func (s *UserServiceImpl) GetAllUser(ctx context.Context, page, limit int, search string) ([]*models.User, int64, error) {
+	offset := (page - 1) * limit
+	return s.userRepo.FindAll(ctx, limit, offset, search)
+}
+
+func (s *UserServiceImpl) GetByIdUser(ctx context.Context, userID int) (*models.User, error) {
 	user, err := s.userRepo.FindById(ctx, userID)
 	if err != nil {
 		return nil, errorresponse.NewCustomError(errorresponse.ErrNotFound, "User not found", 404)
