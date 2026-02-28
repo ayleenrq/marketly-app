@@ -9,7 +9,6 @@ type RegisterUserRequest struct {
 	Password    string                `json:"password" form:"password"`
 	PhoneNumber string                `json:"phone_number" form:"phone_number"`
 	Address     string                `json:"address" form:"address"`
-	Role        string                `json:"role" form:"role"`
 	PhotoFile   *multipart.FileHeader `json:"photo_file" form:"photo_file"`
 }
 
@@ -27,16 +26,16 @@ type UpdateUserRequest struct {
 	PhotoFile   *multipart.FileHeader `json:"photo_file" form:"photo_file"`
 }
 
-type ChangePasswordRequest struct {
+type ChangePasswordUserRequest struct {
 	OldPassword string `json:"old_password" form:"old_password"`
 	NewPassword string `json:"new_password" form:"new_password"`
 }
 
-type ChangeEmailRequest struct {
+type ChangeEmailUserRequest struct {
 	NewEmail string `json:"new_email" form:"new_email"`
 	Password string `json:"password" form:"password"`
 }
 
-type UpdatePhotoRequest struct {
+type UpdatePhotoUserRequest struct {
 	PhotoFile *multipart.FileHeader `json:"photo_file" form:"photo_file"`
 }

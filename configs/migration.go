@@ -15,7 +15,6 @@ func RunMigrations(db *gorm.DB) {
 		&models.Role{},
 		&models.Category{},
 		&models.Product{},
-		&models.Seller{},
 		&models.Order{},
 		&models.OrderItem{},
 		&models.Payment{},
