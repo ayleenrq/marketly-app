@@ -12,7 +12,7 @@ type Product struct {
 	Stock       int       `gorm:"type:int;not null" json:"stock"`
 	ImageURL    *string   `gorm:"type:text" json:"image_url"`
 	IsActive    bool      `gorm:"type:boolean;default:true" json:"is_active"`
-	User        User      `gorm:"foreignKey:UserID" json:"seller"`
+	User        User      `gorm:"foreignKey:SellerID" json:"seller"`
 	Category    Category  `gorm:"foreignKey:CategoryID"`
 	CreatedAt   time.Time `gorm:"autoCreateTime" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"autoUpdateTime" json:"updated_at"`
