@@ -8,7 +8,7 @@ type CreateProductRequest struct {
 	Description string                `json:"description" form:"description"`
 	Price       int                   `json:"price" form:"price"`
 	Stock       int                   `json:"stock" form:"stock"`
-	ImageFile   *multipart.FileHeader `form:"image_file"`
+	ImageFile   *multipart.FileHeader `json:"image_file" form:"image_file"`
 }
 
 type UpdateProductRequest struct {
@@ -21,5 +21,5 @@ type UpdateProductRequest struct {
 }
 
 type UpdateProductImageRequest struct {
-	ImageFile *multipart.FileHeader `form:"image_file"`
+	ImageFile *multipart.FileHeader `json:"image_file" form:"image_file"`
 }
